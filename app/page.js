@@ -87,6 +87,7 @@ export default function Home() {
   const [folders, setFolders]       = useState([])
   const [emailTags, setEmailTags]   = useState({})
   const [customTags, setCustomTags] = useState([])
+  const [expandedSections, setExpandedSections] = useState({ filters: true, folders: true, tags: true })
   const [archived, setArchived]     = useState(new Set())
   const [selectedPerson, setSelectedPerson] = useState(null)
   const [settingsOpen, setSettings] = useState(false)
@@ -112,6 +113,7 @@ export default function Home() {
     setFolders(JSON.parse(localStorage.getItem("fm-folders") || "[]"))
     setEmailTags(JSON.parse(localStorage.getItem("fm-email-tags") || "{}"))
     setCustomTags(JSON.parse(localStorage.getItem("fm-custom-tags") || "[]"))
+    setExpandedSections(JSON.parse(localStorage.getItem("fm-expanded") || '{"filters":true,"folders":true,"tags":true}'))
   }, [])
 
   const fetchEmails = useCallback(() => {
@@ -160,6 +162,11 @@ export default function Home() {
   useEffect(() => { localStorage.setItem("fm-folders", JSON.stringify(folders)) }, [folders])
   useEffect(() => { localStorage.setItem("fm-email-tags", JSON.stringify(emailTags)) }, [emailTags])
   useEffect(() => { localStorage.setItem("fm-custom-tags", JSON.stringify(customTags)) }, [customTags])
+  useEffect(() => { localStorage.setItem("fm-expanded", JSON.stringify(expandedSections)) }, [expandedSections])
+
+  function toggleSection(key) {
+    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
+  }
 
   const openEmail = useCallback(email => {
     setSelected(email)
@@ -362,86 +369,108 @@ export default function Home() {
             {/* Inbox views + filters */}
             {!collapsed && (railTab === "inbox" || railTab === "starred" || railTab === "later") && (
               <>
-                <div className="fm-section-label" style={{ marginTop: "4px" }}>Smart filters</div>
+                <div className="fm-section-label" style={{ marginTop: "4px", cursor: "pointer", userSelect: "none" }} onClick={() => toggleSection("filters")}>
+                  Smart filters
+                  <Ic><polyline points={expandedSections.filters ? "18 15 12 9 6 15" : "6 9 12 15 18 9"}/></Ic>
+                </div>
 
-                <NavItem icon={<Ic><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></Ic>}
-                  label="New senders" active={inboxFilter === "new-domain"}
-                  onClick={() => { setRailTab("inbox"); setInboxFilter("new-domain"); setComposing(false) }} />
+                {expandedSections.filters && (
+                  <>
+                    <NavItem icon={<Ic><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></Ic>}
+                      label="New senders" active={inboxFilter === "new-domain"}
+                      onClick={() => { setRailTab("inbox"); setInboxFilter("new-domain"); setComposing(false) }} />
 
-                <NavItem icon={<Ic><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></Ic>}
-                  label="Receipts" active={inboxFilter === "receipts"}
-                  onClick={() => { setRailTab("inbox"); setInboxFilter("receipts"); setComposing(false) }} />
+                    <NavItem icon={<Ic><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></Ic>}
+                      label="Receipts" active={inboxFilter === "receipts"}
+                      onClick={() => { setRailTab("inbox"); setInboxFilter("receipts"); setComposing(false) }} />
 
-                <NavItem icon={<Ic><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></Ic>}
-                  label="Updates" active={inboxFilter === "updates"}
-                  onClick={() => { setRailTab("inbox"); setInboxFilter("updates"); setComposing(false) }} />
+                    <NavItem icon={<Ic><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></Ic>}
+                      label="Updates" active={inboxFilter === "updates"}
+                      onClick={() => { setRailTab("inbox"); setInboxFilter("updates"); setComposing(false) }} />
 
-                <NavItem icon={<Ic><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Ic>}
-                  label="Personal" active={inboxFilter === "personal"}
-                  onClick={() => { setRailTab("inbox"); setInboxFilter("personal"); setComposing(false) }} />
+                    <NavItem icon={<Ic><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Ic>}
+                      label="Personal" active={inboxFilter === "personal"}
+                      onClick={() => { setRailTab("inbox"); setInboxFilter("personal"); setComposing(false) }} />
+                  </>
+                )}
 
                 <div className="fm-divider" />
 
                 {/* Folders */}
-                <div className="fm-section-label">
+                <div className="fm-section-label" style={{ cursor: "pointer", userSelect: "none" }} onClick={() => toggleSection("folders")} onContextMenu={e => {
+                  e.preventDefault()
+                  const name = window.prompt("Folder name")
+                  if (!name?.trim()) return
+                  const id = `${Date.now()}`
+                  setFolders(prev => [...prev, { id, name: name.trim(), members: [] }])
+                  setRailTab("inbox"); setInboxFilter(`folder:${id}`)
+                  if (!expandedSections.folders) toggleSection("folders")
+                }}>
                   Folders
-                  <button className="fm-add-btn" onClick={() => {
-                    const name = window.prompt("Folder name")
-                    if (!name?.trim()) return
-                    const id = `${Date.now()}`
-                    setFolders(prev => [...prev, { id, name: name.trim(), members: [] }])
-                    setRailTab("inbox"); setInboxFilter(`folder:${id}`)
-                  }}>+</button>
+                  <Ic><polyline points={expandedSections.folders ? "18 15 12 9 6 15" : "6 9 12 15 18 9"}/></Ic>
                 </div>
 
-                {folders.length === 0 && <p className="fm-empty-hint">No folders yet</p>}
+                {expandedSections.folders && (
+                  <>
+                    {folders.length === 0 && <p className="fm-empty-hint">No folders yet</p>}
 
-                {folders.map(folder => (
-                  <button key={folder.id}
-                    className={`fm-nav-item ${inboxFilter === `folder:${folder.id}` ? "active" : ""}`}
-                    onContextMenu={e => {
-                      e.preventDefault()
-                      if (window.confirm(`Delete "${folder.name}"?`)) {
-                        setFolders(prev => prev.filter(f => f.id !== folder.id))
-                        if (inboxFilter === `folder:${folder.id}`) setInboxFilter("all")
-                      }
-                    }}
-                    onClick={() => { setRailTab("inbox"); setInboxFilter(`folder:${folder.id}`); setComposing(false) }}>
-                    <Ic><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></Ic>
-                    <span className="lbl">{folder.name}</span>
-                    <button className="fm-item-btn" onClick={e => {
-                      e.stopPropagation()
-                      const em = window.prompt("Add sender email")
-                      if (!em?.trim()) return
-                      setFolders(prev => prev.map(f => f.id === folder.id
-                        ? { ...f, members: [...new Set([...(f.members||[]), em.trim().toLowerCase()])] }
-                        : f))
-                    }}>+</button>
-                  </button>
-                ))}
+                    {folders.map(folder => (
+                      <button key={folder.id}
+                        className={`fm-nav-item ${inboxFilter === `folder:${folder.id}` ? "active" : ""}`}
+                        onContextMenu={e => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          if (window.confirm(`Delete "${folder.name}"?`)) {
+                            setFolders(prev => prev.filter(f => f.id !== folder.id))
+                            if (inboxFilter === `folder:${folder.id}`) setInboxFilter("all")
+                          }
+                        }}
+                        onClick={() => { setRailTab("inbox"); setInboxFilter(`folder:${folder.id}`); setComposing(false) }}>
+                        <Ic><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></Ic>
+                        <span className="lbl">{folder.name}</span>
+                        <button className="fm-item-btn" onClick={e => {
+                          e.stopPropagation()
+                          const em = window.prompt("Add sender email")
+                          if (!em?.trim()) return
+                          setFolders(prev => prev.map(f => f.id === folder.id
+                            ? { ...f, members: [...new Set([...(f.members||[]), em.trim().toLowerCase()])] }
+                            : f))
+                        }}>+</button>
+                      </button>
+                    ))}
+                  </>
+                )}
 
                 {/* Tags */}
-                <div className="fm-section-label" style={{ marginTop: "6px" }}>
+                <div className="fm-section-label" style={{ marginTop: "6px", cursor: "pointer", userSelect: "none" }} onClick={() => toggleSection("tags")} onContextMenu={e => {
+                  e.preventDefault()
+                  createTag()
+                  if (!expandedSections.tags) toggleSection("tags")
+                }}>
                   Tags
-                  <button className="fm-add-btn" onClick={createTag}>+</button>
+                  <Ic><polyline points={expandedSections.tags ? "18 15 12 9 6 15" : "6 9 12 15 18 9"}/></Ic>
                 </div>
 
-                {["important", "not-important", ...customTags].map(tag => (
-                  <button key={tag}
-                    className={`fm-nav-item ${inboxFilter === `tag:${tag}` ? "active" : ""}`}
-                    onContextMenu={e => {
-                      e.preventDefault()
-                      if (["important","not-important"].includes(tag)) return
-                      if (window.confirm(`Delete tag "${tag}"?`)) {
-                        setCustomTags(prev => prev.filter(t => t !== tag))
-                        if (inboxFilter === `tag:${tag}`) setInboxFilter("all")
-                      }
-                    }}
-                    onClick={() => { setRailTab("inbox"); setInboxFilter(`tag:${tag}`); setComposing(false) }}>
-                    <div className="tag-dot" style={{ background: avatarColor(tag) }} />
-                    <span className="lbl">{tag}</span>
-                  </button>
-                ))}
+                {expandedSections.tags && (
+                  <>
+                    {["important", "not-important", ...customTags].map(tag => (
+                      <button key={tag}
+                        className={`fm-nav-item ${inboxFilter === `tag:${tag}` ? "active" : ""}`}
+                        onContextMenu={e => {
+                          e.preventDefault()
+                          if (["important","not-important"].includes(tag)) return
+                          if (window.confirm(`Delete tag "${tag}"?`)) {
+                            setCustomTags(prev => prev.filter(t => t !== tag))
+                            if (inboxFilter === `tag:${tag}`) setInboxFilter("all")
+                          }
+                        }}
+                        onClick={() => { setRailTab("inbox"); setInboxFilter(`tag:${tag}`); setComposing(false) }}>
+                        <div className="tag-dot" style={{ background: avatarColor(tag) }} />
+                        <span className="lbl">{tag}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
               </>
             )}
           </div>
