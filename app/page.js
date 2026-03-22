@@ -242,14 +242,11 @@ export default function Home() {
     return list
   }, [emails, archived, starred, readLater, railTab, inboxFilter, selectedPerson, search, folders, emailTags, isNewDomain])
 
-  const nowEmails  = displayEmails.filter(e => e.unread && !read.has(e.id))
-  const seenEmails = displayEmails.filter(e => !e.unread || read.has(e.id))
-  const unread     = emails.filter(e => e.unread && !read.has(e.id)).length
+  const unread       = emails.filter(e => e.unread && !read.has(e.id)).length
   const peopleEmails = railTab === "people" && selectedPerson ? displayEmails : []
 
-  const nowVisible  = nowEmails.slice(0, visibleCount)
-  const seenVisible = seenEmails.slice(0, Math.max(0, visibleCount - nowVisible.length))
-  const hasMore     = railTab === "people" ? peopleEmails.length > visibleCount : displayEmails.length > visibleCount
+  const displayVisible = displayEmails.slice(0, visibleCount)
+  const hasMore        = railTab === "people" ? peopleEmails.length > visibleCount : displayEmails.length > visibleCount
 
   useEffect(() => {
     if (railTab === "people" && selectedPerson) {
@@ -320,8 +317,8 @@ export default function Home() {
               onClick={() => { setComposing(true); setComposeTo(""); setSelected(null) }} />
 
             <NavItem icon={<Ic><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></Ic>}
-              label="Inbox" active={railTab === "inbox" && !isComposing} dot={unread > 0}
-              onClick={() => { setRailTab("inbox"); setComposing(false); setSelectedPerson(null) }} />
+              label="Inbox" active={railTab === "inbox" && inboxFilter === "all" && !isComposing} dot={unread > 0}
+              onClick={() => { setRailTab("inbox"); setInboxFilter("all"); setComposing(false); setSelectedPerson(null) }} />
 
             <NavItem icon={<Ic><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></Ic>}
               label="Starred" active={railTab === "starred" && !isComposing}
@@ -330,6 +327,10 @@ export default function Home() {
             <NavItem icon={<Ic><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Ic>}
               label="Read later" active={railTab === "later" && !isComposing}
               onClick={() => { setRailTab("later"); setComposing(false); setSelectedPerson(null) }} />
+
+            <NavItem icon={<Ic><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></Ic>}
+              label="Archived" active={railTab === "inbox" && inboxFilter === "archived" && !isComposing}
+              onClick={() => { setRailTab("inbox"); setInboxFilter("archived"); setComposing(false); setSelectedPerson(null) }} />
 
             <NavItem icon={<Ic><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Ic>}
               label="People" active={railTab === "people" && !isComposing}
@@ -359,18 +360,8 @@ export default function Home() {
             )}
 
             {/* Inbox views + filters */}
-            {(railTab === "inbox" || railTab === "starred" || railTab === "later") && (
+            {!collapsed && (railTab === "inbox" || railTab === "starred" || railTab === "later") && (
               <>
-                <div className="fm-section-label">Views</div>
-
-                <NavItem icon={<Ic><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></Ic>}
-                  label="All mail" active={railTab === "inbox" && inboxFilter === "all"} dot={unread > 0}
-                  onClick={() => { setRailTab("inbox"); setInboxFilter("all"); setComposing(false) }} />
-
-                <NavItem icon={<Ic><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></Ic>}
-                  label="Archived" active={inboxFilter === "archived"}
-                  onClick={() => { setRailTab("inbox"); setInboxFilter("archived"); setComposing(false) }} />
-
                 <div className="fm-section-label" style={{ marginTop: "4px" }}>Smart filters</div>
 
                 <NavItem icon={<Ic><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></Ic>}
@@ -516,18 +507,8 @@ export default function Home() {
                 {loading && <p style={{ padding: "20px 16px", fontSize: "13px", color: "var(--text3)" }}>Loading…</p>}
                 {fetchError && <p style={{ padding: "16px", fontSize: "13px", color: "#c74848" }}>{fetchError}</p>}
 
-                {nowEmails.length > 0 && (
-                  <>
-                    <div className="zone-label">Now</div>
-                    {nowVisible.map(e => (
-                      <ThreadRow key={e.id} email={e} unread starred={starred.has(e.id)}
-                        active={selected?.id === e.id} onClick={() => openEmail(e)} />
-                    ))}
-                  </>
-                )}
-
-                {seenVisible.map(e => (
-                  <ThreadRow key={e.id} email={e} unread={false} starred={starred.has(e.id)}
+                {displayVisible.map(e => (
+                  <ThreadRow key={e.id} email={e} unread={e.unread && !read.has(e.id)} starred={starred.has(e.id)}
                     active={selected?.id === e.id} onClick={() => openEmail(e)} />
                 ))}
 

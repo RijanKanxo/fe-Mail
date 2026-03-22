@@ -84,19 +84,25 @@ html, body {
   min-height: 53px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0 12px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  position: relative;
 }
 
 .fm-logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   font-family: 'Instrument Serif', serif;
   font-size: 20px;
+  font-weight: bold;
+  -webkit-text-stroke: 0.6px currentColor;
   font-style: italic;
   color: var(--text);
   white-space: nowrap;
-  overflow: hidden;
   transition: opacity 0.15s;
 }
 
@@ -135,6 +141,7 @@ html, body {
   align-items: center;
   gap: 9px;
   padding: 7px 10px;
+  margin: 4px 0;
   border-radius: 8px;
   min-height: 34px;
   cursor: pointer;
@@ -234,9 +241,10 @@ html, body {
 }
 
 /* collapsed sidebar */
-.app.collapsed .fm-logo { opacity: 0; width: 0; }
+.app.collapsed .fm-sidebar-header { justify-content: center; padding: 0; }
+.app.collapsed .fm-logo { opacity: 0; width: 0; pointer-events: none; }
 .app.collapsed .fm-sidebar-body { padding: 6px 4px; }
-.app.collapsed .fm-nav-item { justify-content: center; padding: 8px; gap: 0; }
+.app.collapsed .fm-nav-item { justify-content: center; padding: 0; gap: 0; width: 38px; height: 38px; margin: 4px auto; }
 .app.collapsed .fm-nav-item .lbl,
 .app.collapsed .fm-nav-item .fm-dot,
 .app.collapsed .fm-nav-item .fm-item-btn,
@@ -245,7 +253,7 @@ html, body {
 .app.collapsed .fm-divider,
 .app.collapsed .fm-empty-hint { display: none; }
 .app.collapsed .fm-sidebar-footer .lbl { display: none; }
-.app.collapsed .fm-sidebar-footer .fm-nav-item { justify-content: center; padding: 8px; }
+.app.collapsed .fm-sidebar-footer .fm-nav-item { justify-content: center; padding: 0; gap: 0; width: 38px; height: 38px; margin: 0 auto; }
 
 /* ── THREAD COLUMN ── */
 .thread-col {
