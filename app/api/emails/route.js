@@ -1,7 +1,16 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
+import { enforceRateLimit } from "@/lib/request-rate-limiter"
 
 export async function GET(request) {
+  const rateLimit = enforceRateLimit(request, "emails", { max: 90, windowMs: 60_000 })
+  if (!rateLimit.ok) {
+    return Response.json(
+      { error: "Too many requests. Please try again shortly." },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter) } }
+    )
+  }
+
   const session = await getServerSession(authOptions)
   if (!session) return Response.json({ error: "Not logged in" }, { status: 401 })
   if (session.error === "RefreshAccessTokenError") {
