@@ -421,6 +421,9 @@ export default function Home() {
         <button className="signin-btn" onClick={() => signIn("google", { callbackUrl: "/" })}>
           Sign in with Google
         </button>
+        <p className="signin-legal">
+          By continuing, you agree to our <a className="signin-link" href="/terms">Terms & Conditions</a> and <a className="signin-link" href="/privacy">Privacy Policy</a>.
+        </p>
       </div>
     )
   }
@@ -1261,6 +1264,14 @@ function SettingsModal({ session, theme, onThemeToggle, onClose, onSignOut }) {
           </svg>
           <span className="modal-row-label">Notifications</span>
           <span className="modal-row-value">Coming soon</span>
+        </div>
+
+        <div className="modal-divider" />
+
+        <div className="modal-legal">
+          <a className="modal-legal-link" href="/terms" target="_blank" rel="noopener noreferrer">Terms & Conditions</a>
+          <span className="modal-legal-dot">•</span>
+          <a className="modal-legal-link" href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
         </div>
 
         <div className="modal-divider" />

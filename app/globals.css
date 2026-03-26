@@ -843,6 +843,31 @@ html, body {
 }
 .signin-btn:hover { opacity: 0.82; }
 
+
+.signin-legal {
+  margin-top: -2px;
+  max-width: 360px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text3);
+  line-height: 1.5;
+}
+
+.signin-link {
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--accent) 58%, var(--text3));
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  opacity: 0.78;
+  transition: color 0.12s, opacity 0.12s;
+}
+
+.signin-link:hover {
+  color: var(--accent);
+  opacity: 1;
+}
+
 .theme-toggle {
   width: 28px; height: 16px;
   border-radius: 8px;
@@ -910,6 +935,35 @@ html, body {
 .modal-row-label { flex: 1; font-size: 13px; color: var(--text2); }
 .modal-row-value { font-size: 11.5px; color: var(--text3); margin-right: 6px; }
 .modal-signout .modal-row-label { color: var(--accent); }
+
+.modal-legal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 2px;
+}
+
+.modal-legal-link {
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--accent) 58%, var(--text3));
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  opacity: 0.78;
+  transition: color 0.12s, opacity 0.12s;
+}
+
+.modal-legal-link:hover {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.modal-legal-dot {
+  color: var(--text3);
+  font-size: 10px;
+}
+
 .modal-close {
   position: absolute;
   top: 12px; right: 12px;

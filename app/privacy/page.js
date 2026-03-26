@@ -1,15 +1,16 @@
 export default function PrivacyPolicy() {
   return (
-    <div style={{
-      maxWidth: "680px", margin: "0 auto", padding: "60px 24px",
-      fontFamily: "'DM Sans', sans-serif", color: "#1e1a14", lineHeight: "1.7"
-    }}>
-      <h1 style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "36px", fontWeight: 400, marginBottom: "8px" }}>
-        Privacy Policy
-      </h1>
-      <p style={{ color: "#6b6357", fontSize: "14px", marginBottom: "40px" }}>
-        Last updated: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-      </p>
+    <div style={{ height: "100vh", overflowY: "auto", background: "var(--bg)" }}>
+      <div style={{
+        maxWidth: "680px", margin: "0 auto", padding: "60px 24px 80px",
+        fontFamily: "'DM Sans', sans-serif", color: "var(--text)", lineHeight: "1.7"
+      }}>
+        <h1 style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "36px", fontWeight: 400, marginBottom: "8px", color: "var(--text)" }}>
+          Privacy Policy
+        </h1>
+        <p style={{ color: "var(--text2)", fontSize: "14px", marginBottom: "40px" }}>
+          Last updated: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+        </p>
 
       <Section title="Overview">
         fe-Mail is a personal email client that connects to your Gmail account. We take your privacy seriously.
@@ -41,10 +42,10 @@ export default function PrivacyPolicy() {
         Your Gmail access token is handled securely and never exposed to the browser.
       </Section>
 
-      <Section title="Google API">
+        <Section title="Google API">
         fe-Mail's use of information received from Google APIs adheres to the{" "}
         <a href="https://developers.google.com/terms/api-services-user-data-policy"
-          style={{ color: "#3d5a99" }}>
+          style={{ color: "var(--accent)" }}>
           Google API Services User Data Policy
         </a>
         , including the Limited Use requirements.
@@ -68,12 +69,13 @@ export default function PrivacyPolicy() {
         Continued use of fe-Mail after changes means you accept the updated policy.
       </Section>
 
-      <Section title="Contact">
+        <Section title="Contact">
         If you have questions about this privacy policy, contact us at:{" "}
-        <a href="mailto:ctit25.rkp@ismt.edu.np" style={{ color: "#3d5a99" }}>
-          ctit25.rkp@ismt.edu.np
+        <a href="mailto:rijankanxo111@gmail.com" style={{ color: "var(--accent)" }}>
+          rijankanxo111@gmail.com
         </a>
       </Section>
+      </div>
     </div>
   )
 }
@@ -81,10 +83,10 @@ export default function PrivacyPolicy() {
 function Section({ title, children }) {
   return (
     <div style={{ marginBottom: "32px" }}>
-      <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "8px", color: "#1e1a14" }}>
+      <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "8px", color: "var(--text)" }}>
         {title}
       </h2>
-      <div style={{ fontSize: "15px", color: "#4a4540" }}>{children}</div>
+      <div style={{ fontSize: "15px", color: "var(--text2)" }}>{children}</div>
     </div>
   )
 }

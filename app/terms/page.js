@@ -1,15 +1,16 @@
 export default function TermsOfService() {
   return (
-    <div style={{
-      maxWidth: "680px", margin: "0 auto", padding: "60px 24px",
-      fontFamily: "'DM Sans', sans-serif", color: "#1e1a14", lineHeight: "1.7"
-    }}>
-      <h1 style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "36px", fontWeight: 400, marginBottom: "8px" }}>
-        Terms of Service
-      </h1>
-      <p style={{ color: "#6b6357", fontSize: "14px", marginBottom: "40px" }}>
-        Last updated: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-      </p>
+    <div style={{ height: "100vh", overflowY: "auto", background: "var(--bg)" }}>
+      <div style={{
+        maxWidth: "680px", margin: "0 auto", padding: "60px 24px 80px",
+        fontFamily: "'DM Sans', sans-serif", color: "var(--text)", lineHeight: "1.7"
+      }}>
+        <h1 style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "36px", fontWeight: 400, marginBottom: "8px", color: "var(--text)" }}>
+          Terms of Service
+        </h1>
+        <p style={{ color: "var(--text2)", fontSize: "14px", marginBottom: "40px" }}>
+          Last updated: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+        </p>
 
       <Section title="Acceptance">
         By using fe-Mail, you agree to these terms. If you do not agree, please do not use the app.
@@ -21,11 +22,11 @@ export default function TermsOfService() {
         emails through your existing Google account.
       </Section>
 
-      <Section title="Your account">
+        <Section title="Your account">
         You are responsible for maintaining the security of your Google account. fe-Mail
         accesses your Gmail through Google's official OAuth system. You can revoke fe-Mail's
         access at any time through your{" "}
-        <a href="https://myaccount.google.com/permissions" style={{ color: "#3d5a99" }}>
+        <a href="https://myaccount.google.com/permissions" style={{ color: "var(--accent)" }}>
           Google account permissions
         </a>.
       </Section>
@@ -55,12 +56,13 @@ export default function TermsOfService() {
         constitutes acceptance of the new terms.
       </Section>
 
-      <Section title="Contact">
+        <Section title="Contact">
         Questions about these terms?{" "}
-        <a href="mailto:ctit25.rkp@ismt.edu.np" style={{ color: "#3d5a99" }}>
-          ctit25.rkp@ismt.edu.np
+        <a href="mailto:rijankanxo111@gmail.com" style={{ color: "var(--accent)" }}>
+          rijankanxo111@gmail.com
         </a>
       </Section>
+      </div>
     </div>
   )
 }
@@ -68,10 +70,10 @@ export default function TermsOfService() {
 function Section({ title, children }) {
   return (
     <div style={{ marginBottom: "32px" }}>
-      <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "8px", color: "#1e1a14" }}>
+      <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "8px", color: "var(--text)" }}>
         {title}
       </h2>
-      <div style={{ fontSize: "15px", color: "#4a4540" }}>{children}</div>
+      <div style={{ fontSize: "15px", color: "var(--text2)" }}>{children}</div>
     </div>
   )
 }
