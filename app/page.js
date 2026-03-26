@@ -2,6 +2,7 @@
 import { useSession, signIn, signOut } from "next-auth/react"
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react"
 import DOMPurify from "dompurify"
+import AddItemAlert from "@/components/ui/add-item-alert"
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -101,6 +102,23 @@ export default function Home() {
   const [read, setRead]             = useState(new Set())
   const [starred, setStarred]       = useState(new Set())
   const [readLater, setReadLater]   = useState(new Set())
+  const [addAlertOpen, setAddAlertOpen] = useState(false)
+  const [contextMenu, setContextMenu] = useState({
+    open: false,
+    x: 0,
+    y: 0,
+    title: "",
+    items: [],
+  })
+  const [addAlertConfig, setAddAlertConfig] = useState({
+    title: "",
+    description: "",
+    label: "",
+    placeholder: "",
+    confirmText: "Add",
+    suggestions: [],
+    onConfirm: () => {},
+  })
 
   // load persisted state
   useEffect(() => {
@@ -196,11 +214,108 @@ export default function Home() {
     })
   }
 
-  function createTag() {
-    const tag = window.prompt("New tag name")
-    if (!tag?.trim()) return
-    setCustomTags(prev => [...new Set([...prev, tag.trim().toLowerCase()])])
+  function openAddAlert(config) {
+    setAddAlertConfig({
+      title: config.title || "Add item",
+      description: config.description || "",
+      label: config.label || "Name",
+      placeholder: config.placeholder || "Type a value",
+      confirmText: config.confirmText || "Add",
+      suggestions: config.suggestions || [],
+      onConfirm: config.onConfirm || (() => {}),
+    })
+    setAddAlertOpen(true)
   }
+
+  function openContextMenu(event, config) {
+    event.preventDefault()
+    event.stopPropagation()
+    const maxX = Math.max(8, window.innerWidth - 240)
+    const maxY = Math.max(8, window.innerHeight - 220)
+    setContextMenu({
+      open: true,
+      x: Math.min(event.clientX, maxX),
+      y: Math.min(event.clientY, maxY),
+      title: config.title || "Actions",
+      items: config.items || [],
+    })
+  }
+
+  function closeContextMenu() {
+    setContextMenu(prev => ({ ...prev, open: false }))
+  }
+
+  function openCreateTagAlert() {
+    openAddAlert({
+      title: "Add tag",
+      description: "Create a tag you can reuse anywhere in your inbox.",
+      label: "Tag name",
+      placeholder: "example: follow-up",
+      confirmText: "Add tag",
+      suggestions: ["important", "not-important", "follow-up", "client", "invoice"],
+      onConfirm: (value) => {
+        const nextTag = value.trim().toLowerCase()
+        if (!nextTag) return
+        setCustomTags(prev => [...new Set([...prev, nextTag])])
+      },
+    })
+  }
+
+  function openCreateFolderAlert() {
+    openAddAlert({
+      title: "Add folder",
+      description: "Create a custom folder to group senders.",
+      label: "Folder name",
+      placeholder: "example: Clients",
+      confirmText: "Add folder",
+      suggestions: ["Clients", "Team", "Vendors", "Personal"],
+      onConfirm: (value) => {
+        const name = value.trim()
+        if (!name) return
+        const id = `${Date.now()}`
+        setFolders(prev => [...prev, { id, name, members: [] }])
+        setRailTab("inbox")
+        setInboxFilter(`folder:${id}`)
+        if (!expandedSections.folders) {
+          setExpandedSections(prev => ({ ...prev, folders: true }))
+        }
+      },
+    })
+  }
+
+  function openAddFolderMemberAlert(folder) {
+    openAddAlert({
+      title: `Add sender to ${folder.name}`,
+      description: "Enter the sender email you want this folder to include.",
+      label: "Sender email",
+      placeholder: "name@example.com",
+      confirmText: "Add sender",
+      suggestions: senderSuggestions.map(item => item.email),
+      onConfirm: (value) => {
+        const email = value.trim().toLowerCase()
+        if (!email) return
+        setFolders(prev => prev.map(item => item.id === folder.id
+          ? { ...item, members: [...new Set([...(item.members || []), email])] }
+          : item
+        ))
+      },
+    })
+  }
+
+  useEffect(() => {
+    if (!contextMenu.open) return
+    function onKeyDown(event) {
+      if (event.key === "Escape") closeContextMenu()
+    }
+    window.addEventListener("resize", closeContextMenu)
+    window.addEventListener("scroll", closeContextMenu, true)
+    window.addEventListener("keydown", onKeyDown)
+    return () => {
+      window.removeEventListener("resize", closeContextMenu)
+      window.removeEventListener("scroll", closeContextMenu, true)
+      window.removeEventListener("keydown", onKeyDown)
+    }
+  }, [contextMenu.open])
 
   function domainOf(e) {
     const em = senderEmail(e.from || "")
@@ -215,6 +330,30 @@ export default function Home() {
 
   const people = [...new Map(emails.map(e => [senderEmail(e.from), e])).values()]
     .map(e => ({ name: senderName(e.from), email: senderEmail(e.from), from: e.from }))
+
+  const senderSuggestions = useMemo(() => {
+    const map = new Map()
+    for (const email of emails) {
+      const address = senderEmail(email.from || "").toLowerCase().trim()
+      if (!address) continue
+      const name = senderName(email.from || "").trim()
+      const ts = new Date(email.date || "").getTime() || 0
+      const existing = map.get(address)
+      if (!existing) {
+        map.set(address, {
+          email: address,
+          name,
+          count: 1,
+          lastTs: ts,
+        })
+      } else {
+        existing.count += 1
+        if (ts > existing.lastTs) existing.lastTs = ts
+        if (!existing.name && name) existing.name = name
+      }
+    }
+    return [...map.values()].sort((a, b) => a.email.localeCompare(b.email))
+  }, [emails])
 
   const displayEmails = useMemo(() => {
     let list = emails.filter(e => !archived.has(e.id))
@@ -397,14 +536,16 @@ export default function Home() {
                 <div className="fm-divider" />
 
                 {/* Folders */}
-                <div className="fm-section-label" style={{ cursor: "pointer", userSelect: "none" }} onClick={() => toggleSection("folders")} onContextMenu={e => {
-                  e.preventDefault()
-                  const name = window.prompt("Folder name")
-                  if (!name?.trim()) return
-                  const id = `${Date.now()}`
-                  setFolders(prev => [...prev, { id, name: name.trim(), members: [] }])
-                  setRailTab("inbox"); setInboxFilter(`folder:${id}`)
-                  if (!expandedSections.folders) toggleSection("folders")
+                <div className="fm-section-label" style={{ cursor: "pointer", userSelect: "none" }} onClick={() => toggleSection("folders")} onContextMenu={event => {
+                  openContextMenu(event, {
+                    title: "Folders",
+                    items: [
+                      {
+                        label: "Create folder",
+                        action: () => openCreateFolderAlert(),
+                      },
+                    ],
+                  })
                 }}>
                   Folders
                   <Ic><polyline points={expandedSections.folders ? "18 15 12 9 6 15" : "6 9 12 15 18 9"}/></Ic>
@@ -417,24 +558,31 @@ export default function Home() {
                     {folders.map(folder => (
                       <button key={folder.id}
                         className={`fm-nav-item ${inboxFilter === `folder:${folder.id}` ? "active" : ""}`}
-                        onContextMenu={e => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          if (window.confirm(`Delete "${folder.name}"?`)) {
-                            setFolders(prev => prev.filter(f => f.id !== folder.id))
-                            if (inboxFilter === `folder:${folder.id}`) setInboxFilter("all")
-                          }
+                        onContextMenu={event => {
+                          openContextMenu(event, {
+                            title: folder.name,
+                            items: [
+                              {
+                                label: "Add sender",
+                                action: () => openAddFolderMemberAlert(folder),
+                              },
+                              {
+                                label: "Delete folder",
+                                danger: true,
+                                action: () => {
+                                  setFolders(prev => prev.filter(f => f.id !== folder.id))
+                                  if (inboxFilter === `folder:${folder.id}`) setInboxFilter("all")
+                                },
+                              },
+                            ],
+                          })
                         }}
                         onClick={() => { setRailTab("inbox"); setInboxFilter(`folder:${folder.id}`); setComposing(false) }}>
                         <Ic><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></Ic>
                         <span className="lbl">{folder.name}</span>
                         <button className="fm-item-btn" onClick={e => {
                           e.stopPropagation()
-                          const em = window.prompt("Add sender email")
-                          if (!em?.trim()) return
-                          setFolders(prev => prev.map(f => f.id === folder.id
-                            ? { ...f, members: [...new Set([...(f.members||[]), em.trim().toLowerCase()])] }
-                            : f))
+                          openAddFolderMemberAlert(folder)
                         }}>+</button>
                       </button>
                     ))}
@@ -442,10 +590,21 @@ export default function Home() {
                 )}
 
                 {/* Tags */}
-                <div className="fm-section-label" style={{ marginTop: "6px", cursor: "pointer", userSelect: "none" }} onClick={() => toggleSection("tags")} onContextMenu={e => {
-                  e.preventDefault()
-                  createTag()
-                  if (!expandedSections.tags) toggleSection("tags")
+                <div className="fm-section-label" style={{ marginTop: "6px", cursor: "pointer", userSelect: "none" }} onClick={() => toggleSection("tags")} onContextMenu={event => {
+                  openContextMenu(event, {
+                    title: "Tags",
+                    items: [
+                      {
+                        label: "Create tag",
+                        action: () => {
+                          openCreateTagAlert()
+                          if (!expandedSections.tags) {
+                            setExpandedSections(prev => ({ ...prev, tags: true }))
+                          }
+                        },
+                      },
+                    ],
+                  })
                 }}>
                   Tags
                   <Ic><polyline points={expandedSections.tags ? "18 15 12 9 6 15" : "6 9 12 15 18 9"}/></Ic>
@@ -456,13 +615,33 @@ export default function Home() {
                     {["important", "not-important", ...customTags].map(tag => (
                       <button key={tag}
                         className={`fm-nav-item ${inboxFilter === `tag:${tag}` ? "active" : ""}`}
-                        onContextMenu={e => {
-                          e.preventDefault()
-                          if (["important","not-important"].includes(tag)) return
-                          if (window.confirm(`Delete tag "${tag}"?`)) {
-                            setCustomTags(prev => prev.filter(t => t !== tag))
-                            if (inboxFilter === `tag:${tag}`) setInboxFilter("all")
+                        onContextMenu={event => {
+                          if (["important", "not-important"].includes(tag)) {
+                            openContextMenu(event, {
+                              title: tag,
+                              items: [
+                                {
+                                  label: "Protected tag",
+                                  disabled: true,
+                                  action: () => {},
+                                },
+                              ],
+                            })
+                            return
                           }
+                          openContextMenu(event, {
+                            title: tag,
+                            items: [
+                              {
+                                label: "Delete tag",
+                                danger: true,
+                                action: () => {
+                                  setCustomTags(prev => prev.filter(t => t !== tag))
+                                  if (inboxFilter === `tag:${tag}`) setInboxFilter("all")
+                                },
+                              },
+                            ],
+                          })
                         }}
                         onClick={() => { setRailTab("inbox"); setInboxFilter(`tag:${tag}`); setComposing(false) }}>
                         <div className="tag-dot" style={{ background: avatarColor(tag) }} />
@@ -568,7 +747,11 @@ export default function Home() {
         {/* ── DETAIL ── */}
         <div className="detail">
           {isComposing ? (
-            <ComposePane initialTo={composeTo} onClose={() => { setComposing(false); setComposeTo("") }} />
+            <ComposePane
+              initialTo={composeTo}
+              recipientSuggestions={senderSuggestions}
+              onClose={() => { setComposing(false); setComposeTo("") }}
+            />
           ) : selected ? (
             <EmailDetail
               key={selected.id}
@@ -601,6 +784,47 @@ export default function Home() {
           onClose={() => setSettings(false)}
           onSignOut={() => { setSettings(false); signOut() }}
         />
+      )}
+
+      <AddItemAlert
+        open={addAlertOpen}
+        title={addAlertConfig.title}
+        description={addAlertConfig.description}
+        label={addAlertConfig.label}
+        placeholder={addAlertConfig.placeholder}
+        confirmText={addAlertConfig.confirmText}
+        suggestions={addAlertConfig.suggestions}
+        onClose={() => setAddAlertOpen(false)}
+        onConfirm={addAlertConfig.onConfirm}
+      />
+
+      {contextMenu.open && (
+        <>
+          <div className="fm-context-menu-backdrop" onClick={closeContextMenu} />
+          <div
+            className="fm-context-menu"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+            onClick={event => event.stopPropagation()}
+            onContextMenu={event => event.preventDefault()}>
+            <div className="fm-context-menu-title">{contextMenu.title}</div>
+            <div className="fm-context-menu-items">
+              {contextMenu.items.map(item => (
+                <button
+                  key={item.label}
+                  type="button"
+                  className={`fm-context-menu-item ${item.danger ? "danger" : ""}`}
+                  disabled={item.disabled}
+                  onClick={() => {
+                    closeContextMenu()
+                    if (item.disabled) return
+                    item.action?.()
+                  }}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </>
   )
@@ -787,14 +1011,17 @@ function EmailDetail({ email, starred, readLater, tags, customTags, onArchive, o
 }
 
 // ── Compose pane ──────────────────────────────────────────
-function ComposePane({ initialTo, onClose }) {
+function ComposePane({ initialTo, recipientSuggestions = [], onClose }) {
   const [to, setTo]         = useState(initialTo || "")
   const [subject, setSubject] = useState("")
   const [body, setBody]     = useState("")
   const [sending, setSending] = useState(false)
   const [sent, setSent]     = useState(false)
   const [err, setErr]       = useState("")
+  const [toFocus, setToFocus] = useState(false)
+  const [activeToSuggestion, setActiveToSuggestion] = useState(-1)
   const toRef               = useRef(null)
+  const suggestionRefs      = useRef([])
 
   useEffect(() => { if (!initialTo) toRef.current?.focus() }, [initialTo])
 
@@ -812,6 +1039,101 @@ function ComposePane({ initialTo, onClose }) {
     else setErr(data.error || "Failed to send")
   }
 
+  const filteredToSuggestions = useMemo(() => {
+    const q = to.trim().toLowerCase()
+    if (!q) return []
+
+    const now = Date.now()
+    return recipientSuggestions
+      .map(item => {
+        const email = item.email || ""
+        const name = (item.name || "").toLowerCase()
+        const local = email.split("@")[0] || ""
+        const domain = email.split("@")[1] || ""
+
+        let score = -1
+        if (email === q) score = -1
+        else if (email.startsWith(q)) score = 140
+        else if (local.startsWith(q)) score = 125
+        else if (name && name.startsWith(q)) score = 120
+        else if (email.includes(q)) score = 100
+        else if (name && name.includes(q)) score = 90
+        else if (domain.startsWith(q)) score = 80
+
+        if (score < 0) return null
+
+        const activityBoost = Math.min(item.count || 1, 20)
+        const ageDays = Math.max(0, Math.floor((now - (item.lastTs || 0)) / 86400000))
+        const recencyBoost = item.lastTs ? Math.max(0, 14 - Math.min(ageDays, 14)) : 0
+
+        return {
+          ...item,
+          score: score + activityBoost + recencyBoost,
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score || a.email.localeCompare(b.email))
+      .slice(0, 8)
+  }, [recipientSuggestions, to])
+
+  const showToSuggestions = toFocus && filteredToSuggestions.length > 0
+
+  useEffect(() => {
+    setActiveToSuggestion(-1)
+  }, [to, filteredToSuggestions.length])
+
+  useEffect(() => {
+    if (!showToSuggestions) return
+    if (activeToSuggestion < 0) return
+    const target = suggestionRefs.current[activeToSuggestion]
+    target?.focus()
+  }, [activeToSuggestion, showToSuggestions])
+
+  function handleToKeyDown(event) {
+    const total = filteredToSuggestions.length
+
+    if (event.key === "Tab") {
+      if (total === 0) return
+      event.preventDefault()
+      event.stopPropagation()
+      setToFocus(true)
+
+      setActiveToSuggestion(prev => {
+        const next = prev < 0
+          ? (event.shiftKey ? total - 1 : 0)
+          : (event.shiftKey ? (prev - 1 + total) % total : (prev + 1) % total)
+        return next
+      })
+      return
+    }
+
+    if (event.key === "ArrowDown") {
+      if (total === 0) return
+      event.preventDefault()
+      setActiveToSuggestion(prev => {
+        const next = prev < 0 ? 0 : (prev + 1) % total
+        return next
+      })
+      return
+    }
+
+    if (event.key === "ArrowUp") {
+      if (total === 0) return
+      event.preventDefault()
+      setActiveToSuggestion(prev => {
+        const next = prev < 0 ? total - 1 : (prev - 1 + total) % total
+        return next
+      })
+      return
+    }
+
+    if (event.key === "Enter" && activeToSuggestion >= 0) {
+      event.preventDefault()
+      const picked = filteredToSuggestions[activeToSuggestion]
+      if (picked) setTo(picked.email)
+    }
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div className="detail-bar">
@@ -825,8 +1147,53 @@ function ComposePane({ initialTo, onClose }) {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "28px 36px 0", overflowY: "auto" }}>
         <div className="compose-field">
           <span className="compose-field-label">To</span>
-          <input ref={toRef} className="compose-field-input" placeholder="recipient@example.com"
-            value={to} onChange={e => { setTo(e.target.value); if (err) setErr("") }} />
+          <div className="compose-to-wrap">
+            <input
+              ref={toRef}
+              className="compose-field-input"
+              placeholder="recipient@example.com"
+              value={to}
+              onFocus={() => setToFocus(true)}
+              onBlur={event => {
+                const next = event.relatedTarget
+                if (next && next.closest?.(".compose-to-wrap")) return
+                setTimeout(() => setToFocus(false), 120)
+              }}
+              onKeyDown={handleToKeyDown}
+              onChange={e => { setTo(e.target.value); if (err) setErr("") }}
+            />
+            {showToSuggestions && (
+              <div className="compose-suggest-list">
+                {filteredToSuggestions.map((item, index) => (
+                  <button
+                    key={item.email}
+                    type="button"
+                    tabIndex={-1}
+                    ref={el => {
+                      suggestionRefs.current[index] = el
+                    }}
+                    className={`compose-suggest-item ${index === activeToSuggestion ? "active" : ""}`}
+                    onMouseDown={event => event.preventDefault()}
+                    onFocus={() => {
+                      setToFocus(true)
+                      setActiveToSuggestion(index)
+                    }}
+                    onBlur={event => {
+                      const next = event.relatedTarget
+                      if (next && next.closest?.(".compose-to-wrap")) return
+                      setTimeout(() => setToFocus(false), 120)
+                    }}
+                    onKeyDown={handleToKeyDown}
+                    onMouseEnter={() => setActiveToSuggestion(index)}
+                    onClick={() => setTo(item.email)}>
+                    <span className="compose-suggest-line">
+                      {item.name ? `${item.name} <${item.email}>` : item.email}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <div className="compose-field">
           <span className="compose-field-label">Subject</span>
